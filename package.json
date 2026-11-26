@@ -1,0 +1,26 @@
+{
+  "name": "agentsphere-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgentSphere - Multi-Tenant AI Agent, Knowledge & Workflow Automation Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "keywords": [
+    "ai-agent",
+    "multi-tenant",
+    "saas",
+    "workflow-automation",
+    "rag",
+    "gateway"
+  ],
+  "author": "AgentSphere Engineering Team",
+  "license": "MIT"
+}
