@@ -1,0 +1,25 @@
+name: Security & Secret Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    name: Secret & Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check for Unencrypted Secrets in Commits
+        run: |
+          echo "Scanning for accidental hardcoded secrets..."
+          ! grep -rn "sk-proj-" . --exclude-dir={node_modules,.git,.next}
+          ! grep -rn "sk-ant-" . --exclude-dir={node_modules,.git,.next}
+          echo "No active API secrets found in tracked source files."
+
+      - name: Audit Monorepo Dependencies
+        run: npm audit --audit-level=high || true

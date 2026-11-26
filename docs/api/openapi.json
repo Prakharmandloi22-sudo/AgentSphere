@@ -1,0 +1,167 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AgentSphere Multi-Tenant AI Platform API",
+    "version": "1.0.0",
+    "description": "Production REST API for AgentSphere: multi-tenant agent management, prompt governance, vector retrieval, execution orchestration, and human approval."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate user and issue tenant-scoped JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" },
+                  "tenantSlug": { "type": "string" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authentication successful" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/agents": {
+      "get": {
+        "summary": "List all agents belonging to the authenticated tenant",
+        "security": [{ "bearerAuth": [] }, { "apiKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Array of agent records" }
+        }
+      },
+      "post": {
+        "summary": "Create a new agent",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Agent created successfully" },
+          "403": { "description": "Quota exceeded or insufficient permissions" }
+        }
+      }
+    },
+    "/executions": {
+      "get": {
+        "summary": "List execution traces for the tenant",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of execution traces" }
+        }
+      },
+      "post": {
+        "summary": "Execute an agent workflow",
+        "security": [{ "bearerAuth": [] }, { "apiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agentId": { "type": "string" },
+                  "inputQuery": { "type": "string" }
+                },
+                "required": ["agentId", "inputQuery"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Workflow execution started/completed" },
+          "400": { "description": "Budget exceeded or validation failure" }
+        }
+      }
+    },
+    "/approvals": {
+      "get": {
+        "summary": "List pending human approval requests",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of pending human approval requests" }
+        }
+      }
+    },
+    "/approvals/{id}/decision": {
+      "post": {
+        "summary": "Approve or reject a paused workflow step",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": { "type": "string", "enum": ["APPROVED", "REJECTED"] },
+                  "comment": { "type": "string" }
+                },
+                "required": ["decision"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Execution resumed and updated" }
+        }
+      }
+    },
+    "/tools": {
+      "get": {
+        "summary": "List registered tools in tenant registry",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Array of registered tools" }
+        }
+      }
+    },
+    "/knowledge/documents": {
+      "get": {
+        "summary": "List knowledge documents for tenant",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Array of knowledge documents" }
+        }
+      }
+    },
+    "/usage": {
+      "get": {
+        "summary": "Get tenant monthly token consumption and budget status",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Tenant usage metrics and remaining buffer" }
+        }
+      }
+    }
+  }
+}

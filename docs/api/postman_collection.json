@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "AgentSphere REST API Collection",
+    "description": "Postman API Collection for testing and demonstrating AgentSphere SaaS Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
+    { "key": "jwtToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Login as Owner",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"owner@acme.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "Agents - List All",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": "{{baseUrl}}/agents"
+      }
+    },
+    {
+      "name": "Executions - Start Agent Workflow",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"agentId\": \"agent-acme-001\",\n  \"inputQuery\": \"Customer requesting $150 return on damaged goods\"\n}"
+        },
+        "url": "{{baseUrl}}/executions"
+      }
+    },
+    {
+      "name": "Approvals - List Pending",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": "{{baseUrl}}/approvals"
+      }
+    },
+    {
+      "name": "Approvals - Resolve Decision",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"decision\": \"APPROVED\",\n  \"comment\": \"Verified customer photo of damaged item.\"\n}"
+        },
+        "url": "{{baseUrl}}/approvals/appr-901/decision"
+      }
+    },
+    {
+      "name": "Usage - Current Spend & Budget",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+        ],
+        "url": "{{baseUrl}}/usage"
+      }
+    }
+  ]
+}

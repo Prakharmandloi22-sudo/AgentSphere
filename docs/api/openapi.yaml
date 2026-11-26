@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: AgentSphere API Specification
+  description: Multi-Tenant AI Agent, Knowledge & Workflow Automation SaaS Platform REST API
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Core Node.js API Service
+  - url: http://localhost:8000
+    description: Python FastAPI Model Gateway & Document Pipeline
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user & get tenant scoped JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: "owner@acme.com" }
+                password: { type: string, example: "Password123!" }
+      responses:
+        '200':
+          description: Authenticated session with token, user and tenant details
+        '401':
+          description: Invalid email or password
+
+  /auth/api-keys:
+    post:
+      summary: Create a scoped API key
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, example: "Production Backend Key" }
+                scopes: { type: array, items: { type: string } }
+      responses:
+        '201':
+          description: API Key created successfully (only shown once)
+
+  /tenants/{id}/budget:
+    patch:
+      summary: Update tenant monthly budget limit (Requires OWNER role)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [monthlyBudgetUsd]
+              properties:
+                monthlyBudgetUsd: { type: number, example: 250.00 }
+      responses:
+        '200':
+          description: Tenant budget updated
+        '403':
+          description: Forbidden - lacks OWNER role
+
+  /agents:
+    get:
+      summary: List agents belonging to authenticated tenant
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Array of agent definitions
+    post:
+      summary: Create a new agent (Requires OWNER or AI_BUILDER role)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                allowedToolIds: { type: array, items: { type: string } }
+                maxExecutionSteps: { type: integer, example: 10 }
+      responses:
+        '201':
+          description: Agent created
+
+  /agents/{id}/prompts:
+    get:
+      summary: List prompt versions for an agent (Assessment 10)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of versions sorted newest to oldest
+    post:
+      summary: Create a new prompt version
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [systemPrompt]
+              properties:
+                systemPrompt: { type: string }
+                changeLog: { type: string }
+                model: { type: string, example: "gpt-4o-mini" }
+                temperature: { type: number, example: 0.3 }
+      responses:
+        '201':
+          description: New prompt version created
+
+  /agents/{id}/prompts/{versionId}/activate:
+    post:
+      summary: Rollback / Activate specific prompt version
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: path
+          name: versionId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Version set to active
+
+  /executions:
+    post:
+      summary: Run an agent with multi-step orchestration and safety guardrails
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agentId, inputQuery]
+              properties:
+                agentId: { type: string }
+                inputQuery: { type: string, example: "Verify return eligibility for order #123" }
+      responses:
+        '201':
+          description: Execution trace generated (COMPLETED or WAITING_FOR_APPROVAL)
+        '400':
+          description: Execution halted (e.g. prompt injection blocked or budget exceeded)
+
+  /approvals:
+    get:
+      summary: List pending human approvals
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+      responses:
+        '200':
+          description: Array of approval requests
+
+  /approvals/{id}/resolve:
+    post:
+      summary: Authorize or reject pending action and resume execution
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approved]
+              properties:
+                approved: { type: boolean }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Approval resolved and execution resumed
+
+  /tools:
+    get:
+      summary: List available tools (global + tenant specific)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Array of tool definitions
+
+  /knowledge/search:
+    post:
+      summary: Isolated vector similarity search across tenant documents
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string }
+                limit: { type: integer, default: 3 }
+      responses:
+        '200':
+          description: Ranked relevant chunks
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
